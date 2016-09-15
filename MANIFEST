@@ -1,0 +1,11 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+t/MarcUtil-MarcMapping.t
+t/TestMarcFieldHolder.pm
+t/TestMarcMappingCollection.pm
+t/TestMarcMapping.pm
+lib/MarcUtil/MarcMapping.pm
+lib/MarcUtil/MarcFieldHolder.pm
+lib/MarcUtil/MarcMappingCollection.pm
