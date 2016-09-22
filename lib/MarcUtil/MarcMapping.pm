@@ -24,12 +24,14 @@ has collection => (
 
 has control_fields => (
     is => 'rw',
-    isa => 'ArrayRef[Str]'
+    isa => 'ArrayRef[Str]',
+    default => sub { [] }
     );
 
 has subfields => (
     is => 'rw',
-    isa => 'HashRef[ArrayRef[Str]]'
+    isa => 'HashRef[ArrayRef[Str]]',
+    default => sub { {} }
     );
 
 has append_fields => (
@@ -62,10 +64,10 @@ sub _get_fhs {
         my @existing_fields = $self->record->field( $tag );
         $fhs = [];
         my $i = 0;
-        for (; $i < 0 + @existing_fields; $i++) {
+        for (; $i < scalar(@existing_fields); $i++) {
             push @$fhs, MarcUtil::MarcFieldHolder->new( record => $self->record, tag => $tag, field => $existing_fields[$i] );
         }
-        push @$fhs, @{$self->_appended_fields( $tag, $n - $i )};
+        push @$fhs, @{$self->_appended_fields( $tag, defined($n) ? $n - $i : undef )};
     }
 
     return $fhs;
@@ -73,7 +75,22 @@ sub _get_fhs {
 
 sub set {
     my $self = shift;
-    my $n = 0 + @_;
+    my $n = scalar(@_);
+
+    my @data = @_;
+
+    my ($g, $stop);
+    if ($n == 1 && UNIVERSAL::isa($_[0], 'CODE')) {
+        $g = $data[0];
+        $stop = sub { return 0 };
+        undef($n);
+    } else {
+        $g = sub {
+            my $i = shift;
+            return $data[$i];
+        };
+        $stop = sub { return shift >= $n };
+    }
 
     croak "No record bound!" unless $self->record;
 
@@ -82,8 +99,8 @@ sub set {
         my $fhs = $self->_get_fhs( $cf, $n );
 
         for my $fh (@$fhs) {
-            last if ($cfn >= $n);
-            $fh->set_controlfield($_[$cfn]);
+            last if $stop->($cfn);
+            $fh->set_controlfield($g->($cfn));
             $cfn++;
         }
     }
@@ -93,9 +110,9 @@ sub set {
         my $fhs = $self->_get_fhs( $f, $n );
 
         for my $fh (@$fhs) {
-            last if ($nf >= $n);
+            last if $stop->($nf);
             for my $subfields ($self->subfields->{$f}) {
-                $fh->set_subfield( $_, $_[$nf] ) for @$subfields;
+                $fh->set_subfield( $_, $g->($nf) ) for @$subfields;
             }
             $nf++;
         }
@@ -116,7 +133,7 @@ sub get {
 
     for my $f (keys %{$self->subfields}) {
         for my $sf (@{$self->subfields->{$f}}) {
-            push @ret, (map { $_->subfield( $sf ) } $self->record->field($f));
+            push @ret, map { scalar($_->subfield( $sf )); } $self->record->field($f);
         }
     }
 
@@ -158,7 +175,7 @@ sub _appended_fields {
         $self->{fhs}->{$tag} = $fhs;
     }
 
-    for (my $i = 0 + @$fhs; $i < $n; $i++) {
+    for (my $i = 0 + @$fhs; defined($n) && $i < $n; $i++) {
         my $fh = MarcUtil::MarcFieldHolder->new( record => $self->record, tag => $tag );
         push @$fhs, $fh;
     }

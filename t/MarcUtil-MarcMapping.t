@@ -17,4 +17,4 @@ use Test::Unit::HarnessUnit;
 
 my $testrunner = Test::Unit::HarnessUnit->new();
 
-$testrunner->start('TestMarcMapping');
+$testrunner->start('TestSuite');

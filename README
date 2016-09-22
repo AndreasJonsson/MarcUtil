@@ -28,6 +28,7 @@ This module requires these other modules and libraries:
    MARC::Record
    Moose
    MooseX::StrictConstructor
+   Test::Unit
 
 COPYRIGHT AND LICENCE
 

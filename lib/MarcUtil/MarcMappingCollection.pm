@@ -101,7 +101,7 @@ sub _appended_fields {
         $self->{fhs}->{$tag} = $fhs;
     }
 
-    for (my $i = 0 + @$fhs; $i < $n; $i++) {
+    for (my $i = 0 + @$fhs; defined($n) && $i < $n; $i++) {
         my $fh = MarcUtil::MarcFieldHolder->new( record => $self->record, tag => $tag );
         push @$fhs, $fh;
     }

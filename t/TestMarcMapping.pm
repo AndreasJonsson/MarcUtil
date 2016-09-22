@@ -108,6 +108,26 @@ sub test_set_multi {
     $self->check_subfield( '101', 'f', 2, 'foo', 'bar'  );
 }
 
+sub test_generator {
+    my $self = shift;
+
+    $self->{mm}->set('foo', 'bar');
+
+    $self->{mm}->reset;
+
+    $self->{mm}->set( sub { return shift() ? 'quiz' : 'baz'  } );
+
+    $self->check_control_field( '001', 2, 'baz', 'quiz' );
+    $self->check_control_field( '002', 2, 'baz', 'quiz' );
+
+    $self->check_subfield( '100', 'a', 2, 'baz', 'quiz' );
+    $self->check_subfield( '100', 'b', 2, 'baz', 'quiz' );
+    $self->check_subfield( '100', 'c', 2, 'baz', 'quiz'  );
+    $self->check_subfield( '101', 'd', 2, 'baz', 'quiz'  );
+    $self->check_subfield( '101', 'e', 2, 'baz', 'quiz'  );
+    $self->check_subfield( '101', 'f', 2, 'baz', 'quiz'  );
+}
+
 sub test_append {
     my $self = shift;
 
@@ -212,15 +232,5 @@ sub check_subfield {
     } @val, @subfields;
 }
 
-sub suite {
-    my $class = shift;
-
-    my $suite = Test::Unit::TestSuite->empty_new("MarcMapping etc.");
-
-    $suite->add_test('TestMarcFieldHolder');
-    $suite->add_test('TestMarcMappingCollection');
-
-    return $suite;
-}
 
 1;

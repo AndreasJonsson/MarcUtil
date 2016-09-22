@@ -71,6 +71,31 @@ sub test_set {
 
 }
 
+sub test_get_other {
+    my $self = shift;
+
+    $self->{mc}->set( 'holdingbranch', 'foo', 'bar' );
+
+    my @res = $self->{mc}->get( 'homebranch' );
+
+    my @exp = (undef, undef);
+
+    pairwise {
+        $self->assert_equals( $a, $b );
+    } @exp, @res;
+
+    $self->{mc}->set( 'localshelf', undef, 'baz');
+
+    @res = $self->{mc}->get( 'localshelf' );
+
+    @exp = (undef, 'baz');
+
+    pairwise {
+        $self->assert_equals( $a, $b );
+    } @exp, @res;
+}
+
+
 sub test_set_multi {
     my $self = shift;
 
