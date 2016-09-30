@@ -6,6 +6,7 @@ t/MarcUtil-MarcMapping.t
 t/TestMarcFieldHolder.pm
 t/TestMarcMappingCollection.pm
 t/TestMarcMapping.pm
+t/TestSuite.pm
 lib/MarcUtil/MarcMapping.pm
 lib/MarcUtil/MarcFieldHolder.pm
 lib/MarcUtil/MarcMappingCollection.pm
