@@ -129,7 +129,7 @@ sub get {
     for my $cf (@{$self->control_fields}) {
         my @fields = $self->record->field( $cf );
         for (my $i = 0; $i < @fields; $i++) {
-            $ret[$#ret] = $fields[$i]->data();
+            $ret[@ret] = $fields[$i]->data();
         }
     }
 
@@ -137,7 +137,7 @@ sub get {
         for my $sf (@{$self->subfields->{$f}}) {
             my @fields = $self->record->field($f);
             for (my $i = 0; $i < @fields; $i++) {
-                $ret[$#ret] = scalar($fields[$i]->subfield( $sf ));
+                $ret[@ret] = scalar($fields[$i]->subfield( $sf ));
             }
         }
     }
