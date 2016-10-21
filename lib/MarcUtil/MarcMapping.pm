@@ -127,13 +127,18 @@ sub get {
     my @ret = ();
 
     for my $cf (@{$self->control_fields}) {
-        my @vals = map { $_->data(); } $self->record->field( $cf );
-        push @ret, @vals;
+        my @fields = $self->record->field( $cf );
+        for (my $i = 0; $i < @fields; $i++) {
+            $ret[$#ret] = $fields[$i]->data();
+        }
     }
 
     for my $f (keys %{$self->subfields}) {
         for my $sf (@{$self->subfields->{$f}}) {
-            push @ret, map { scalar($_->subfield( $sf )); } $self->record->field($f);
+            my @fields = $self->record->field($f);
+            for (my $i = 0; $i < @fields; $i++) {
+                $ret[$#ret] = scalar($fields[$i]->subfield( $sf ));
+            }
         }
     }
 
