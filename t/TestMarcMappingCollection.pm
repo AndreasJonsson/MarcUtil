@@ -95,7 +95,6 @@ sub test_get_other {
     } @exp, @res;
 }
 
-
 sub test_set_multi {
     my $self = shift;
 
@@ -151,6 +150,26 @@ sub test_get {
 
     pairwise {
         $self->assert_equals( $b, $a );
+    } @exp, @res;
+}
+
+sub test_autobarcode {
+    my $self = shift;
+
+    $self->{mc}->set( 'homebranch', 'a', 'b' );
+
+    my $n = 0;
+
+    $self->{mc}->set( 'barcode', sub {
+	$n++;
+	return 'autobarcode-' . $n;  });
+
+    my @res = $self->{mc}->get( 'barcode' );
+    
+    my @exp = ('autobarcode-1', 'autobarcode-2');
+    
+    pairwise {
+	$self->assert_equals( $b, $a );
     } @exp, @res;
 }
 

@@ -232,5 +232,34 @@ sub check_subfield {
     } @val, @subfields;
 }
 
+sub test_set_last {
+    my $self = shift;
+
+    $self->{mm}->set( 'foo', 'bar' );
+
+    $self->check_control_field( '001', 2, 'foo', 'bar' );
+    $self->check_control_field( '002', 2, 'foo', 'bar' );
+
+    $self->check_subfield( '100', 'a', 2, 'foo', 'bar' );
+    $self->check_subfield( '100', 'b', 2, 'foo', 'bar' );
+    $self->check_subfield( '100', 'c', 2, 'foo', 'bar' );
+    $self->check_subfield( '101', 'd', 2, 'foo', 'bar' );
+    $self->check_subfield( '101', 'e', 2, 'foo', 'bar' );
+    $self->check_subfield( '101', 'f', 2, 'foo', 'bar' );
+
+    $self->{mm}->setLast( 'baz' );
+
+    $self->check_control_field( '001', 2, 'foo', 'baz' );
+    $self->check_control_field( '002', 2, 'foo', 'baz' );
+
+    $self->check_subfield( '100', 'a', 2, 'foo', 'baz' );
+    $self->check_subfield( '100', 'b', 2, 'foo', 'baz' );
+    $self->check_subfield( '100', 'c', 2, 'foo', 'baz' );
+    $self->check_subfield( '101', 'd', 2, 'foo', 'baz' );
+    $self->check_subfield( '101', 'e', 2, 'foo', 'baz' );
+    $self->check_subfield( '101', 'f', 2, 'foo', 'baz' );
+
+}
+
 
 1;

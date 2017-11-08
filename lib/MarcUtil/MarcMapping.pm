@@ -119,6 +119,28 @@ sub set {
     }
 }
 
+sub setLast {
+    my $self = shift;
+    my $v = shift;
+
+    for my $cf (@{$self->control_fields}) {
+        my $cfn = 0;
+        my $fhs = $self->_get_fhs( $cf );
+
+	$fhs->[$#{$fhs}]->set_controlfield($v);
+    }    
+
+    for my $f (keys %{$self->subfields}) {
+        my $nf = 0;
+        my $fhs = $self->_get_fhs( $f );
+
+	my $last_fh = $fhs->[$#{$fhs}];
+	for my $subfields ($self->subfields->{$f}) {
+	    $last_fh->set_subfield( $_, $v ) for @$subfields;
+	}
+    }
+}
+
 sub get {
     my $self = shift;
 
