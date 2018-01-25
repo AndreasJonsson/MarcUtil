@@ -8,6 +8,7 @@ use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'NORMARC' );
 use Modern::Perl;
 use List::MoreUtils qw(pairwise);
 use Data::Dumper;
+use utf8;
 
 sub new {
     my $self = shift()->SUPER::new(@_);
@@ -258,6 +259,101 @@ sub test_set_last {
     $self->check_subfield( '101', 'd', 2, 'foo', 'baz' );
     $self->check_subfield( '101', 'e', 2, 'foo', 'baz' );
     $self->check_subfield( '101', 'f', 2, 'foo', 'baz' );
+
+}
+
+sub test_get_035_a {
+    my $self = shift;
+    my $xml = <<'EOXML';
+<record>
+  <leader>00782nam a2200313   45  </leader>
+  <controlfield tag="001">0000099793</controlfield>
+  <controlfield tag="003">SE-LIBR</controlfield>
+  <controlfield tag="005">20070820000000.0</controlfield>
+  <controlfield tag="008">010529s2001    sw |||| ||||||||||||swe||</controlfield>
+  <datafield tag="020" ind1=" " ind2=" ">
+    <subfield code="a">9147049863</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(Libra)0000200437</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(LibraSE)99793</subfield>
+  </datafield>
+  <datafield tag="041" ind1="0" ind2=" ">
+    <subfield code="a">swe</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">Eaa</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">Dg</subfield>
+  </datafield>
+  <datafield tag="084" ind1=" " ind2=" ">
+    <subfield code="a">Dofaa</subfield>
+  </datafield>
+  <datafield tag="100" ind1="1" ind2=" ">
+    <subfield code="a">Johansson, Eva</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Små barns etik /</subfield>
+    <subfield code="c">Eva Johansson ; [illustrationer: Stina Wirsén]</subfield>
+  </datafield>
+  <datafield tag="250" ind1=" " ind2=" ">
+    <subfield code="a">1. uppl.</subfield>
+  </datafield>
+  <datafield tag="260" ind1=" " ind2=" ">
+    <subfield code="a">Stockholm :</subfield>
+    <subfield code="b">Liber,</subfield>
+    <subfield code="c">2001</subfield>
+    <subfield code="e">(Falköping :</subfield>
+    <subfield code="f">Elander Gummesson)</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">200 s. :</subfield>
+    <subfield code="b">ill.</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">Pedagogisk psykologi</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">Socialpsykologi</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">Förskolan</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">Förskolebarn</subfield>
+  </datafield>
+  <datafield tag="653" ind1=" " ind2=" ">
+    <subfield code="a">Normer</subfield>
+  </datafield>
+  <datafield tag="852" ind1="8" ind2=" ">
+    <subfield code="h">Eaa</subfield>
+  </datafield>
+</record>
+EOXML
+
+    my $record = MARC::Record::new_from_xml($xml, 'UTF-8', 'MARC21');
+    my $mm = MarcUtil::MarcMapping->new(
+	subfields => { '035' => [ 'a' ] },
+	record => $record
+	);
+    my @values = $mm->get();
+
+    $self->assert_equals(scalar(@values), 2);
+
+    my $catid_copy;
+    for my $catid ($mm->get()) {
+	if ($catid =~ /^\(LibraSE\)/) {
+	    $catid =~ s/\((.*)\)//;
+	    $catid_copy = $catid;
+	    last;
+	}
+    }
+
+    
+    $self->assert_equals($catid_copy, 99793);
 
 }
 
