@@ -42,6 +42,17 @@ sub BUILD {
     $self->{appended_field} = undef;
 }
 
+sub insert_field {
+    my ($record, $field) = @_;
+    for my $f ($record->fields) {
+	if (int($f->tag) < int($field->tag)) {
+	    $record->insert_fields_before($f, $field);
+	    return;
+	}
+    }
+    $record->append_fields($field);
+}
+
 sub set_subfield {
     my ($self, $subtag, $val) = @_;
 
@@ -49,7 +60,7 @@ sub set_subfield {
         $self->field->update( $subtag => $val );
     } else {
         $self->field( MARC::Field->new( $self->tag, $self->ind1, $self->ind2, $subtag => $val ) );
-        $self->record->append_fields( $self->field );
+        insert_field($self->record,  $self->field );
     }
 }
 
@@ -60,7 +71,7 @@ sub set_controlfield {
         $self->field->update($val);
     } else {
         $self->field( MARC::Field->new( $self->tag, $val ) );
-        $self->record->append_fields( $self->field );
+        insert_field($self->record,  $self->field );
     }
 }
 
