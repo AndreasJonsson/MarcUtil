@@ -14,6 +14,15 @@ push @INC, "./t";
 # its man page ( perldoc Test::More ) for help writing this test script.
 
 use Test::Unit::HarnessUnit;
+#use Test::Unit::Debug qw(debug_to_file debug_pkgs);
+
+#debug_pkgs(
+#    'Test::Unit::TestSuite',
+#    'Test::Unit::TestCase',
+#    'Test::Unit::Test',
+#    'Test::Unit::Assert',
+#    'Test::Unit');
+
 
 my $testrunner = Test::Unit::HarnessUnit->new();
 

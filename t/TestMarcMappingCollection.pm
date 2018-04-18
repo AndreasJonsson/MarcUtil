@@ -3,6 +3,7 @@ package TestMarcMappingCollection;
 use base qw(Test::Unit::TestCase);
 
 use MarcUtil::MarcMappingCollection;
+use MarcUtil::FieldTag;
 use MARC::Record;
 use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'NORMARC' );
 use Modern::Perl;

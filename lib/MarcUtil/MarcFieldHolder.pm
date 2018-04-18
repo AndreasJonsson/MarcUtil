@@ -45,10 +45,10 @@ sub BUILD {
 sub insert_field {
     my ($record, $field) = @_;
     for my $f ($record->fields) {
-	if (int($f->tag) < int($field->tag)) {
-	    $record->insert_fields_before($f, $field);
-	    return;
-	}
+        if (int($f->tag) > int($field->tag)) {
+            $record->insert_fields_before($f, $field);
+            return;
+        }
     }
     $record->append_fields($field);
 }

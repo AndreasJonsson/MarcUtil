@@ -5,6 +5,7 @@ use Modern::Perl;
 use Moose;
 use MooseX::StrictConstructor;
 use MarcUtil::MarcMapping;
+use MarcUtil::FieldTag;
 use Carp;
 
 has mappings => (
@@ -40,21 +41,35 @@ sub marc_mappings {
 
     for my $name (keys %params) {
         my @cfs = ();
-        my %fs = ();
-        for my $mv ($params{$name}->{map}) {
-            if (UNIVERSAL::isa($mv, 'HASH')) {
-                for my $sf (keys %$mv) {
-                    if (UNIVERSAL::isa($mv->{$sf}, 'ARRAY')) {
-                        $fs{$sf} = $mv->{$sf};
-                    } else {
-                        $fs{$sf} = [ $mv->{$sf} ];
+        my @subfields = ();
+        if (defined($params{$name}->{map})) {
+            my %fs = ();
+            for my $mv ($params{$name}->{map}) {
+                if (UNIVERSAL::isa($mv, 'HASH')) {
+                    for my $sf (keys %$mv) {
+                        if (UNIVERSAL::isa($mv->{$sf}, 'ARRAY')) {
+                            $fs{$sf} = $mv->{$sf};
+                        } else {
+                            $fs{$sf} = [ $mv->{$sf} ];
+                        }
                     }
+                } else {
+                    push @cfs, $mv;
                 }
-            } else {
-                push @cfs, $mv;
             }
+            push @subfields, (map {
+                my $f = $_;
+                MarcUtil::FieldTag->new(tag => $f, subtags => $fs{$f});
+            } keys %fs);
         }
-        my $mm = MarcUtil::MarcMapping->new( control_fields => \@cfs, subfields => \%fs,  collection => $c);
+        if (defined($params{$name}->{fieldtags})) {
+            push @subfields, @{$params{$name}->{fieldtags}};
+        }
+        my $mm = MarcUtil::MarcMapping->new(
+            control_fields => [map { UNIVERSAL::isa($_, 'MarcUtil::FieldTag') ? $_ : MarcUtil::FieldTag->new(tag => $_) } @cfs],
+            subfields => \@subfields,
+            collection => $c
+            );
         if ($params{$name}->{append}) {
             $mm->append_fields(1);
         }
@@ -91,9 +106,13 @@ sub delete {
 }
 
 sub _appended_fields {
-    my ($self, $tag, $n) = @_;
+    my ($self, $fieldtag, $n) = @_;
 
     my $fhs = [];
+
+    my $tag = $fieldtag->tag .
+        (defined($fieldtag->ind1) ? $fieldtag->ind1 : '') .
+        (defined($fieldtag->ind2) ? $fieldtag->ind2 : '');
 
     if (defined($self->{fhs}->{$tag})) {
         $fhs = $self->{fhs}->{$tag};
@@ -102,7 +121,12 @@ sub _appended_fields {
     }
 
     for (my $i = 0 + @$fhs; defined($n) && $i < $n; $i++) {
-        my $fh = MarcUtil::MarcFieldHolder->new( record => $self->record, tag => $tag );
+        my $fh = MarcUtil::MarcFieldHolder->new(
+            record => $self->record,
+            tag => $fieldtag->tag,
+            ind1 => MarcUtil::MarcMapping::_ind_val($fieldtag->ind1),
+            ind2 => MarcUtil::MarcMapping::_ind_val($fieldtag->ind2)
+        );
         push @$fhs, $fh;
     }
 
@@ -117,10 +141,17 @@ sub reset {
         my $mapping = $self->{mappings}->{$name};
         croak "No mapping named $name!" unless defined $mapping;
         for my $cf (@{$mapping->control_fields}) {
-            delete($self->{fhs}->{$cf});
+            my $tag = $cf->tag .
+                (defined($cf->ind1) ? $cf->ind1 : '') .
+                (defined($cf->ind2) ? $cf->ind2 : '');
+
+            delete($self->{fhs}->{$tag});
         }
-        for my $f  (keys %{$mapping->subfields}) {
-            delete($self->{fhs}->{$f});
+        for my $f (@{$mapping->subfields}) {
+            my $tag = $f->tag .
+                (defined($f->ind1) ? $f->ind1 : '') .
+                (defined($f->ind2) ? $f->ind2 : '');
+            delete($self->{fhs}->{$tag});
         }
     } else {
         $self->{fhs} = {};

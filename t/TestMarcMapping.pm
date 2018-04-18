@@ -3,6 +3,7 @@ package TestMarcMapping;
 use base qw(Test::Unit::TestCase);
 
 use MarcUtil::MarcMapping;
+use MarcUtil::FieldTag;
 use MARC::Record;
 use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'NORMARC' );
 use Modern::Perl;
@@ -19,11 +20,11 @@ sub set_up {
     my $self = shift;
     $self->{record} = MARC::Record->new();
     $self->{mm} = MarcUtil::MarcMapping->new(
-        control_fields => ['001', '002'],
-        subfields => {
-            '100' => ['a', 'b', 'c'],
-            '101' => ['d', 'e', 'f']
-        },
+        control_fields => [MarcUtil::FieldTag->new(tag => '001'), MarcUtil::FieldTag->new(tag => '002')],
+        subfields => [
+            MarcUtil::FieldTag->new(tag => '100', subtags => ['a', 'b', 'c']),
+            MarcUtil::FieldTag->new(tag => '101', subtags => ['d', 'e', 'f'])
+        ],
         append_fields => 0
         );
     $self->{mm}->record($self->{record});
@@ -233,6 +234,30 @@ sub check_subfield {
     } @val, @subfields;
 }
 
+
+sub check_subfield_with_indicators {
+    my $self = shift;
+    my $tag = shift;
+    my $subtag = shift;
+    my $ind1 = shift;
+    my $ind2 = shift;
+    my $length = shift;
+    my @val = @_;
+
+    my @subfields = ();
+    for my $field ($self->{record}->field( $tag )) {
+        if ($field->indicator(1) eq $ind1 && $field->indicator(2) eq $ind2) {
+            push @subfields, $field->subfield( $subtag );
+        }
+    }
+
+    $self->assert_equals( $length, 0 + @subfields );
+
+    pairwise {
+        $self->assert_equals( $a, $b );
+    } @val, @subfields;
+}
+
 sub test_set_last {
     my $self = shift;
 
@@ -336,8 +361,8 @@ EOXML
 
     my $record = MARC::Record::new_from_xml($xml, 'UTF-8', 'MARC21');
     my $mm = MarcUtil::MarcMapping->new(
-	subfields => { '035' => [ 'a' ] },
-	record => $record
+        subfields => [ MarcUtil::FieldTag->new( tag => '035', subtags => [ 'a' ] ) ],
+        record => $record
 	);
     my @values = $mm->get();
 
@@ -345,11 +370,11 @@ EOXML
 
     my $catid_copy;
     for my $catid ($mm->get()) {
-	if ($catid =~ /^\(LibraSE\)/) {
-	    $catid =~ s/\((.*)\)//;
-	    $catid_copy = $catid;
-	    last;
-	}
+        if ($catid =~ /^\(LibraSE\)/) {
+            $catid =~ s/\((.*)\)//;
+            $catid_copy = $catid;
+            last;
+        }
     }
 
     
@@ -357,5 +382,32 @@ EOXML
 
 }
 
+sub test_indicators {
+    my $self = shift;
+
+    my $mm1 = MarcUtil::MarcMapping->new(
+        subfields => [
+            MarcUtil::FieldTag->new( tag => '653', subtags => [ 'a' ], ind1 => '7', ind2 => ' ' ),
+        ],
+        record => $self->{record}
+	);
+
+    my $mm2 = MarcUtil::MarcMapping->new(
+        subfields => [
+            MarcUtil::FieldTag->new( tag => '653', subtags => [ 'a' ], ind1 => ' ', ind2 => ' ' )
+        ],
+        record => $self->{record}
+	);
+
+    $mm1->set('foo', 'bar');
+    $mm2->set('quiz', 'quid');
+
+    $self->check_subfield_with_indicators( '653', 'a', '7', ' ', 2, 'foo', 'bar' );
+    $self->check_subfield_with_indicators( '653', 'a', ' ', ' ', 2, 'quiz', 'quid' );
+
+    $mm1->delete();
+    $self->check_subfield_with_indicators( '653', 'a', '7', ' ', 0 );
+    $self->check_subfield_with_indicators( '653', 'a', ' ', ' ', 2, 'quiz', 'quid' );
+}
 
 1;

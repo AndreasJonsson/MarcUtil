@@ -1,6 +1,6 @@
 package MarcUtil::MarcMapping;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use namespace::autoclean;
 use Modern::Perl;
@@ -9,6 +9,7 @@ use MooseX::StrictConstructor;
 use Carp;
 use MARC::Field;
 use MarcUtil::MarcFieldHolder;
+use MarcUtil::FieldTag;
 use Data::Dumper;
 
 has record => (
@@ -24,13 +25,13 @@ has collection => (
 
 has control_fields => (
     is => 'rw',
-    isa => 'ArrayRef[Str]',
+    isa => 'ArrayRef[MarcUtil::FieldTag]',
     default => sub { [] }
     );
 
 has subfields => (
     is => 'rw',
-    isa => 'HashRef[ArrayRef[Str]]',
+    isa => 'ArrayRef[MarcUtil::FieldTag]',
     default => sub { {} }
     );
 
@@ -47,27 +48,42 @@ sub BUILD {
 }
 
 sub mm_sf {
-    my ($field, $sub) = @_;
-    return MarcMapping->new(subfields => { $field => [ $sub ] });
+    my ($field, $sub, $ind1, $ind2) = @_;
+    return MarcMapping->new(subfields => [ MarcUtil::FieldTag->new(
+                                               tag => $field,
+                                               subtags => $sub,
+                                               ind1 => $ind1,
+                                               ind2 => $ind2
+                                           ) ]);
 }
 
+sub _ind_val {
+    my $ind = shift;
+    if (!defined($ind) || $ind eq '') {
+        return ' ';
+    }
+    return $ind;
+}
 
 sub _get_fhs {
-    my $self = shift;
-    my $tag = shift;
-    my $n = shift;
+    my ($self, $fieldtag, $n) = @_;
 
     my $fhs;
     if ($self->append_fields) {
-        $fhs = $self->_appended_fields( $tag, $n );
+        $fhs = $self->_appended_fields( $fieldtag, $n );
     } else {
-        my @existing_fields = $self->record->field( $tag );
+        my @existing_fields = match_fields($self->record, $fieldtag);
         $fhs = [];
         my $i = 0;
         for (; $i < scalar(@existing_fields); $i++) {
-            push @$fhs, MarcUtil::MarcFieldHolder->new( record => $self->record, tag => $tag, field => $existing_fields[$i] );
+            push @$fhs, MarcUtil::MarcFieldHolder->new(
+                record => $self->record,
+                tag => $fieldtag->tag,
+                field => $existing_fields[$i],
+                ind1 => _ind_val($fieldtag->ind1),
+                ind2 => _ind_val($fieldtag->ind2));
         }
-        push @$fhs, @{$self->_appended_fields( $tag, defined($n) ? $n - $i : undef )};
+        push @$fhs, @{$self->_appended_fields( $fieldtag, defined($n) ? $n - $i : undef )};
     }
 
     return $fhs;
@@ -105,14 +121,14 @@ sub set {
         }
     }
 
-    for my $f (keys %{$self->subfields}) {
+    for my $f (@{$self->subfields}) {
         my $nf = 0;
         my $fhs = $self->_get_fhs( $f, $n );
 
         for my $fh (@$fhs) {
             last if $stop->($nf);
-            for my $subfields ($self->subfields->{$f}) {
-                $fh->set_subfield( $_, $g->($nf) ) for @$subfields;
+            if (defined($f->subtags)) {
+                $fh->set_subfield( $_, $g->($nf) ) for @{$f->subtags};
             }
             $nf++;
         }
@@ -127,18 +143,33 @@ sub setLast {
         my $cfn = 0;
         my $fhs = $self->_get_fhs( $cf );
 
-	$fhs->[$#{$fhs}]->set_controlfield($v);
-    }    
+        $fhs->[$#{$fhs}]->set_controlfield($v);
+    }
 
-    for my $f (keys %{$self->subfields}) {
+    for my $f (@{$self->subfields}) {
         my $nf = 0;
         my $fhs = $self->_get_fhs( $f );
 
-	my $last_fh = $fhs->[$#{$fhs}];
-	for my $subfields ($self->subfields->{$f}) {
-	    $last_fh->set_subfield( $_, $v ) for @$subfields;
-	}
+        my $last_fh = $fhs->[$#{$fhs}];
+
+        $last_fh->set_subfield( $_, $v ) for @{$f->subtags};
     }
+}
+
+sub match_fields {
+    my ( $record, $fieldtag ) = @_;
+    my @fields = $record->field( $fieldtag->tag );
+    my @ret = ();
+    for my $f (@fields) {
+        if (defined($fieldtag->ind1) && $fieldtag->ind1 ne '') {
+            next if ($f->indicator(1) ne $fieldtag->ind1);
+        }
+        if (defined($fieldtag->ind2) && $fieldtag->ind2 ne '') {
+            next if ($f->indicator(2) ne $fieldtag->ind2);
+        }
+        push @ret, $f;
+    }
+    return @ret;
 }
 
 sub get {
@@ -149,15 +180,15 @@ sub get {
     my @ret = ();
 
     for my $cf (@{$self->control_fields}) {
-        my @fields = $self->record->field( $cf );
+        my @fields = match_fields($self->record, $cf);
         for (my $i = 0; $i < @fields; $i++) {
             $ret[@ret] = $fields[$i]->data();
         }
     }
 
-    for my $f (keys %{$self->subfields}) {
-        for my $sf (@{$self->subfields->{$f}}) {
-            my @fields = $self->record->field($f);
+    for my $f (@{$self->subfields}) {
+        for my $sf (@{$f->subtags}) {
+            my @fields = match_fields($self->record, $f );
             for (my $i = 0; $i < @fields; $i++) {
                 $ret[@ret] = scalar($fields[$i]->subfield( $sf ));
             }
@@ -174,27 +205,31 @@ sub delete {
     croak "No record bound!" unless $self->record;
 
     for my $cf (@{$self->control_fields}) {
-        $self->record->delete_fields( $self->record->field( $cf ) );
+        my @fields = match_fields($self->record, $cf);
+        $self->record->delete_fields( @fields );
     }
 
-    for my $f (keys %{$self->subfields}) {
+    for my $f (@{$self->subfields}) {
         map {
-            $_->delete_subfield( code => $self->subfields->{$f} );
+            $_->delete_subfield( code => $f->subtags );
             if (0 + $_->subfields == 0) {
                 $self->record->delete_fields( $_ );
             }
-        } $self->record->field( $f );
+        } match_fields($self->record, $f );
     }
 }
 
 sub _appended_fields {
-    my ($self, $tag, $n) = @_;
+    my ($self, $fieldtag, $n) = @_;
 
     if (defined($self->collection)) {
-        return $self->collection->_appended_fields( $tag, $n );
+        return $self->collection->_appended_fields( $fieldtag, $n );
     }
 
     my $fhs = [];
+    my $tag = $fieldtag->tag .
+        (defined($fieldtag->ind1) ? $fieldtag->ind1 : '') .
+        (defined($fieldtag->ind2) ? $fieldtag->ind2 : '');
 
     if (defined($self->{fhs}->{$tag})) {
         $fhs = $self->{fhs}->{$tag};
@@ -203,7 +238,12 @@ sub _appended_fields {
     }
 
     for (my $i = 0 + @$fhs; defined($n) && $i < $n; $i++) {
-        my $fh = MarcUtil::MarcFieldHolder->new( record => $self->record, tag => $tag );
+        my $fh = MarcUtil::MarcFieldHolder->new(
+            record => $self->record,
+            tag => $fieldtag->tag,
+            ind1 => _ind_val($fieldtag->ind1),
+            ind2 => _ind_val($fieldtag->ind2)
+        );
         push @$fhs, $fh;
     }
 
