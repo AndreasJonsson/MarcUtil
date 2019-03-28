@@ -10,3 +10,4 @@ t/TestSuite.pm
 lib/MarcUtil/MarcMapping.pm
 lib/MarcUtil/MarcFieldHolder.pm
 lib/MarcUtil/MarcMappingCollection.pm
+lib/MarcUtil/FieldTag.pm
