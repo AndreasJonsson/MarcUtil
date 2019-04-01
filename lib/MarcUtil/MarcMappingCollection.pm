@@ -28,6 +28,7 @@ has record => (
     }
     );
 
+
 sub BUILD {
     my $self = shift;
 
@@ -35,9 +36,14 @@ sub BUILD {
 }
 
 sub marc_mappings {
+    return __PACKAGE__->_marc_mappings(@_);
+}
+
+sub _marc_mappings {
+    my $class = shift;
     my %params = @_;
 
-    my $c = __PACKAGE__->new();
+    my $c = $class->new();
 
     for my $name (keys %params) {
         my @cfs = ();
@@ -65,10 +71,17 @@ sub marc_mappings {
         if (defined($params{$name}->{fieldtags})) {
             push @subfields, @{$params{$name}->{fieldtags}};
         }
+	my $params = {};
+	for my $p (keys %{$params{$name}}) {
+	    if ($p ne 'map') {
+		$params->{$p} = $params{$name}->{$p};
+	    }
+	}
         my $mm = MarcUtil::MarcMapping->new(
             control_fields => [map { UNIVERSAL::isa($_, 'MarcUtil::FieldTag') ? $_ : MarcUtil::FieldTag->new(tag => $_) } @cfs],
             subfields => \@subfields,
-            collection => $c
+            collection => $c,
+	    params => $params
             );
         if ($params{$name}->{append}) {
             $mm->append_fields(1);

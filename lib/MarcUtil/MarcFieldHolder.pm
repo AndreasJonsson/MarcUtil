@@ -56,6 +56,11 @@ sub insert_field {
 sub set_subfield {
     my ($self, $subtag, $val) = @_;
 
+    unless (defined $val) {
+	carp 'Value undefined of ' . $self->tag . " $subtag!";
+	$val = '';
+    }
+
     if (defined($self->field)) {
         $self->field->update( $subtag => $val );
     } else {
@@ -66,6 +71,11 @@ sub set_subfield {
 
 sub set_controlfield {
     my ($self, $val) = @_;
+
+    unless (defined $val) {
+	carp 'Value undefined of ' . $self->tag;
+	$val = '';
+    }
 
     if (defined($self->field)) {
         $self->field->update($val);

@@ -9,6 +9,7 @@ use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'NORMARC' );
 use Modern::Perl;
 use List::MoreUtils qw(pairwise);
 use Data::Dumper;
+use Test::Warn;
 
 sub new {
     my $self = shift()->SUPER::new(@_);
@@ -85,14 +86,21 @@ sub test_get_other {
         $self->assert_equals( $a, $b );
     } @exp, @res;
 
-    $self->{mc}->set( 'localshelf', undef, 'baz');
+    eval {
+	local $SIG{__WARN__} = sub {};
+	$self->{mc}->set( 'localshelf', undef, 'baz');
+    };
 
     @res = $self->{mc}->get( 'localshelf' );
 
-    @exp = (undef, 'baz');
+    @exp = ('', 'baz');
 
     pairwise {
-        $self->assert_equals( $a, $b );
+	if (defined $a) {
+	    $self->assert_equals( $a, $b );
+	} else {
+	    $self->assert_null( $b );
+	}
     } @exp, @res;
 }
 

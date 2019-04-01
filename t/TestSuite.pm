@@ -10,6 +10,7 @@ sub suite {
     $suite->add_test('TestMarcFieldHolder');
     $suite->add_test('TestMarcMapping');
     $suite->add_test('TestMarcMappingCollection');
+    $suite->add_test('TestWrappedMarcMappingCollection');
 
     return $suite;
 }

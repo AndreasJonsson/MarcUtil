@@ -1,11 +1,12 @@
 package MarcUtil::MarcMapping;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 use namespace::autoclean;
 use Modern::Perl;
 use Moose;
 use MooseX::StrictConstructor;
+
 use Carp;
 use MARC::Field;
 use MarcUtil::MarcFieldHolder;
@@ -40,6 +41,12 @@ has append_fields => (
     isa => 'Bool',
     default => '1'
     );
+
+has params => (
+    is => 'ro',
+    isa => 'HashRef',
+    default => sub { {} }
+);
 
 sub BUILD {
     my $self = shift;
