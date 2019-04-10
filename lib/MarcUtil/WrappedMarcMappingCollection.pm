@@ -33,14 +33,21 @@ sub set {
     my $mapping = $self->mappings->{$name};
 
     if (defined $mapping->params->{itemcol}) {
-	my $col = $mapping->params->{itemcol};
-	my $items = $self->{items};
-	my $n = scalar(@$items);
-	my $item = $items->[$n - 1];
-	$item->{defined_columns}->{$col} = {
-	    val => $val,
-	    mapping => $mapping
-	};
+	my $cols = $mapping->params->{itemcol};
+	my @cols = ($cols);
+	if (ref $cols eq 'ARRAY') {
+	    @cols = @$cols;
+	}
+
+	for my $col (@cols) {
+	    my $items = $self->{items};
+	    my $n = scalar(@$items);
+	    my $item = $items->[$n - 1];
+	    $item->{defined_columns}->{$col} = {
+		val => $val,
+		mapping => $mapping
+	    };
+	}
 	
 	return;
     }
@@ -57,7 +64,9 @@ sub get {
     if (defined $mapping->params->{itemcol}) {
 	my @ret = ();
 	for my $item (@{$self->{items}}) {
-	    push @ret, $item->{defined_columns}->{$mapping->params->{itemcol}}->{val};
+	    if (defined $item->{defined_columns}->{$mapping->params->{itemcol}}) {
+		push @ret, $item->{defined_columns}->{$mapping->params->{itemcol}}->{val};
+	    }
 	}
 
 	return @ret if wantarray;
