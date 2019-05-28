@@ -12,7 +12,7 @@ has mappings => (
     is => 'ro',
     isa => 'HashRef[MarcUtil::MarcMapping]',
     default => sub { return {} }
-    );
+);
 
 has record => (
     is => 'rw',
@@ -26,8 +26,7 @@ has record => (
         }
         $self->reset();
     }
-    );
-
+);
 
 sub BUILD {
     my $self = shift;

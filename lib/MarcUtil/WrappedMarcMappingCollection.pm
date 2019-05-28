@@ -52,7 +52,7 @@ sub set {
 	return;
     }
 
-    $self->SUPER::set($name, @_);
+    $self->SUPER::set($name, $val, @_);
 }
 
 sub get {
@@ -106,12 +106,16 @@ sub get_items_set_sql {
 	    my $val = $item->{defined_columns}->{$col}->{val};
 	    my $mapping = $item->{defined_columns}->{$col}->{mapping};
 	    if (defined $mapping->params->{av}) {
-		$val = "(SELECT authorised_value FROM authorised_values WHERE category = " .
-		    $self->quote->($mapping->params->{av}) . " AND id = $val)";
+		$val = "(SELECT id FROM authorised_values WHERE category = " .
+		    $self->quote->($mapping->params->{av}) . " AND authorised_value = " . $self->quote->($val) . ")";
 	    } elsif (!(defined $mapping->params->{numeric} and $mapping->params->{numeric})) {
 		$val = $self->quote->($val);
 	    }
 	    push @$defined_columns, "$col=$val";
+	}
+	if (!defined($original_id) || $original_id eq '') {
+	    print STDERR "get_items_set_sql no original id\n";
+	    print STDERR Dumper($item);
 	}
 	push @$items, {
 	    original_id => $original_id,

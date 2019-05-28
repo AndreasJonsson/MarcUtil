@@ -56,14 +56,13 @@ sub insert_field {
 sub set_subfield {
     my ($self, $subtag, $val) = @_;
 
-    unless (defined $val) {
-	carp 'Value undefined of ' . $self->tag . " $subtag!";
-	$val = '';
-    }
-
     if (defined($self->field)) {
-        $self->field->update( $subtag => $val );
-    } else {
+	if (defined($val)) {
+	    $self->field->update( $subtag => $val );
+	} else {
+	    $self->field->delete_subfield( 'code' => $subtag );
+	}
+    } elsif (defined($val)) {
         $self->field( MARC::Field->new( $self->tag, $self->ind1, $self->ind2, $subtag => $val ) );
         insert_field($self->record,  $self->field );
     }
