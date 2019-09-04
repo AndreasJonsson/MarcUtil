@@ -1,6 +1,6 @@
 package MarcUtil::MarcMapping;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 use namespace::autoclean;
 use Modern::Perl;
@@ -52,6 +52,8 @@ sub BUILD {
     my $self = shift;
 
     $self->{fhs} = {};
+    $self->{ind1} = ' ';
+    $self->{ind2} = ' ';
 }
 
 sub mm_sf {
@@ -62,6 +64,42 @@ sub mm_sf {
                                                ind1 => $ind1,
                                                ind2 => $ind2
                                            ) ]);
+}
+
+sub ind1 {
+    my ($self, $val) = @_;
+
+    return $self->{ind1} unless defined $val;
+
+    die "Indicator must be one character" unless length($val) == 1;
+
+    $self->{ind1} = $val;
+    for my $f (@{$self->control_fields}) {
+	$f->ind1($val);
+    }
+    for my $f (@{$self->subfields}) {
+	$f->ind1($val);
+    }
+
+    return $val;
+}
+
+sub ind2 {
+    my ($self, $val) = @_;
+
+    return $self->{ind2} unless defined $val;
+
+    die "Indicator must be one character" unless length($val) == 1;
+
+    $self->{ind2} = $val;
+    for my $f (@{$self->control_fields}) {
+	$f->ind2($val);
+    }
+    for my $f (@{$self->subfields}) {
+	$f->ind2($val);
+    }
+
+    return $val;
 }
 
 sub _ind_val {

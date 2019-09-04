@@ -111,7 +111,7 @@ sub get_items_set_sql {
 	    } elsif (!(defined $mapping->params->{numeric} and $mapping->params->{numeric})) {
 		$val = $self->quote->($val);
 	    }
-	    push @$defined_columns, "$col=$val";
+	    push @$defined_columns, "$col=$val" if defined($val);
 	}
 	if (!defined($original_id) || $original_id eq '') {
 	    print STDERR "get_items_set_sql no original id\n";
