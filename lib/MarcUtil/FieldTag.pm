@@ -11,19 +11,19 @@ has tag => (
 );
 
 has ind1 => (
-    is => 'ro',
+    is => 'rw',
     isa => 'Maybe[Str]',
     default => sub { return undef }
 );
 
 has ind2 => (
-    is => 'ro',
+    is => 'rw',
     isa => 'Maybe[Str]',
     default => sub { return undef }
 );
 
 has subtags => (
-    is => 'ro',
+    is => 'rw',
     isa => 'Maybe[ArrayRef[Str]]',
     default => sub { return undef }
 );

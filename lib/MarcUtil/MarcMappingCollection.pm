@@ -49,19 +49,30 @@ sub _marc_mappings {
         my @subfields = ();
         if (defined($params{$name}->{map})) {
             my %fs = ();
-            for my $mv ($params{$name}->{map}) {
-                if (UNIVERSAL::isa($mv, 'HASH')) {
-                    for my $sf (keys %$mv) {
-                        if (UNIVERSAL::isa($mv->{$sf}, 'ARRAY')) {
-                            $fs{$sf} = $mv->{$sf};
-                        } else {
-                            $fs{$sf} = [ $mv->{$sf} ];
-                        }
-                    }
-                } else {
-                    push @cfs, $mv;
-                }
-            }
+            my $mv = $params{$name}->{map};
+	    if (UNIVERSAL::isa($mv, 'HASH')) {
+		for my $sf (keys %$mv) {
+		    if (UNIVERSAL::isa($mv->{$sf}, 'ARRAY')) {
+			$fs{$sf} = $mv->{$sf};
+		    } else {
+			$fs{$sf} = [ $mv->{$sf} ];
+		    }
+		}
+	    } else {
+		$mv =~ m/^(\d\d\d)(?::(.)(.))?(?:\$(.))?$/;
+		my ($tag, $ind1, $ind2, $subfield) = ($1, $2, $3, $4);
+		my $fieldtag = MarcUtil::FieldTag->new( tag => $tag );
+		if (defined $ind1 && defined $ind2) {
+		    $fieldtag->ind1($ind1);
+		    $fieldtag->ind2($ind2);
+		}
+		if (defined $subfield) {
+		    $fieldtag->subtags([$subfield]);
+		    push @subfields, $fieldtag;
+		} else {
+		    push @cfs, $fieldtag;
+		}
+	    }
             push @subfields, (map {
                 my $f = $_;
                 MarcUtil::FieldTag->new(tag => $f, subtags => $fs{$f});
