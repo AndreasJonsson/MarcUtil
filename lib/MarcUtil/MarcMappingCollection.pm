@@ -8,6 +8,9 @@ use MarcUtil::MarcMapping;
 use MarcUtil::FieldTag;
 use Carp;
 
+our $ITEMTAG = '952';
+
+
 has mappings => (
     is => 'ro',
     isa => 'HashRef[MarcUtil::MarcMapping]',
@@ -180,6 +183,13 @@ sub reset {
         $self->{fhs} = {};
     }
 }
+
+sub reset_items {
+    my $self = shift;
+
+    delete($self->{fhs}->{$ITEMTAG});
+}
+
 
 __PACKAGE__->meta->make_immutable;
 

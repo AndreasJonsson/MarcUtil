@@ -21,12 +21,24 @@ sub BUILD {
     $self->{items} = [];
 }
 
-
-
 sub set {
     my $self = shift;
     my $name = shift;
-    my $val = shift;
+    my @data = @_;
+    my $n = scalar(@_);
+
+    my ($g, $stop);
+    if ($n == 1 && UNIVERSAL::isa($_[0], 'CODE')) {
+        $g = $data[0];
+        $stop = sub { return 0 };
+        undef($n);
+    } else {
+        $g = sub {
+            my $i = shift;
+            return $data[$i];
+        };
+        $stop = sub { return shift >= $n };
+    }
 
     croak "No mapping named $name!" unless defined $self->mappings->{$name};
 
@@ -39,20 +51,27 @@ sub set {
 	    @cols = @$cols;
 	}
 
+        my $nf = 0;
+	
 	for my $col (@cols) {
+
+            last if $stop->($nf);
+
 	    my $items = $self->{items};
-	    my $n = scalar(@$items);
-	    my $item = $items->[$n - 1];
+	    my $nitems = scalar(@$items);
+	    my $item = $items->[($nitems - $n) + $nf];
 	    $item->{defined_columns}->{$col} = {
-		val => $val,
+		val => $g->($nf),
 		mapping => $mapping
 	    };
+
+            $nf++;
 	}
 	
 	return;
     }
 
-    $self->SUPER::set($name, $val, @_);
+    $self->SUPER::set($name, @data);
 }
 
 sub get {

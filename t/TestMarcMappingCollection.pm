@@ -93,7 +93,7 @@ sub test_get_other {
 
     @res = $self->{mc}->get( 'localshelf' );
 
-    @exp = ('', 'baz');
+    @exp = (undef, 'baz');
 
     pairwise {
 	if (defined $a) {
