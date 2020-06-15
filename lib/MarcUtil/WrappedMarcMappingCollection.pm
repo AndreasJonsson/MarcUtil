@@ -19,8 +19,8 @@ sub BUILD {
     my $self = shift;
 
     $self->{items} = [];
+    $self->{itemfhcounts} = {};
 }
-
 sub set {
     my $self = shift;
     my $name = shift;
@@ -45,27 +45,26 @@ sub set {
     my $mapping = $self->mappings->{$name};
 
     if (defined $mapping->params->{itemcol}) {
-	my $cols = $mapping->params->{itemcol};
-	my @cols = ($cols);
-	if (ref $cols eq 'ARRAY') {
-	    @cols = @$cols;
-	}
+	for my $col (_itemcols($mapping)) {
+	    my $nf = 0;
+	    while (1) {
+		my $items = $self->{items};
+		my $nitems = scalar(@$items);
 
-        my $nf = 0;
-	
-	for my $col (@cols) {
+		last if $stop->($nf) || $nf + ($nitems - (defined $n ? $n : 0)) >= $nitems;
 
-            last if $stop->($nf);
+		my $v = $g->($nf);
 
-	    my $items = $self->{items};
-	    my $nitems = scalar(@$items);
-	    my $item = $items->[($nitems - $n) + $nf];
-	    $item->{defined_columns}->{$col} = {
-		val => $g->($nf),
-		mapping => $mapping
-	    };
+		if (defined $v) {
+		    my $item = $items->[($nitems - $n) + $nf];
+		    $item->{defined_columns}->{$col} = {
+			val => $v,
+			mapping => $mapping
+		    };
+		}
 
-            $nf++;
+		$nf++;
+	    }
 	}
 	
 	return;
@@ -73,6 +72,7 @@ sub set {
 
     $self->SUPER::set($name, @data);
 }
+
 
 sub get {
     my $self = shift;
@@ -83,8 +83,12 @@ sub get {
     if (defined $mapping->params->{itemcol}) {
 	my @ret = ();
 	for my $item (@{$self->{items}}) {
-	    if (defined $item->{defined_columns}->{$mapping->params->{itemcol}}) {
-		push @ret, $item->{defined_columns}->{$mapping->params->{itemcol}}->{val};
+	    for my $col (_itemcols($mapping)) {
+		if (defined $item->{defined_columns}->{$col}) {
+		    push @ret, $item->{defined_columns}->{$col}->{val};
+		} else {
+		    push @ret, undef;
+		}
 	    }
 	}
 
@@ -93,6 +97,18 @@ sub get {
     }
     
     return $self->SUPER::get($name, @_);
+}
+
+sub _itemcols {
+    my $mapping = shift;
+    
+    my $cols = $mapping->params->{itemcol};
+    my @cols = ($cols);
+    if (ref $cols eq 'ARRAY') {
+	@cols = @$cols;
+    }
+
+    return @cols;
 }
 
 sub reset {
@@ -145,9 +161,36 @@ sub get_items_set_sql {
     return $items;
 }
 
+sub _new_marcfield_holder {
+    my $self = shift;
+
+    my $fh = $self->SUPER::_new_marcfield_holder(@_);
+
+    my $mapping = $self->mappings->{$fh->name};
+
+    if (defined $mapping->params->{itemcol}) {
+	for my $col (_itemcols($mapping)) {
+	    my $n;
+	    if (!defined $self->{itemfhcounts}->{$col}) {
+		$self->{itemfhcounts}->{$col} = 0;
+		$n = 0;
+	    } else {
+		$n = $self->{itemfhcounts}->{$col};
+		$self->{itemfhcounts}->{$col}++;
+	    }
+	    $fh->mapping($mapping);
+	    $fh->items($self->items);
+	    $fh->itemindex($n);
+	}
+    }
+
+    return $fh;
+}
 
 sub marc_mappings {
     return __PACKAGE__->_marc_mappings(@_);
 }
+
+__PACKAGE__->meta->make_immutable;
 
 1;

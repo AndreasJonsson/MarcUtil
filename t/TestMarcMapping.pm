@@ -20,6 +20,7 @@ sub set_up {
     my $self = shift;
     $self->{record} = MARC::Record->new();
     $self->{mm} = MarcUtil::MarcMapping->new(
+	name => 'mapping0',
         control_fields => [MarcUtil::FieldTag->new(tag => '001'), MarcUtil::FieldTag->new(tag => '002')],
         subfields => [
             MarcUtil::FieldTag->new(tag => '100', subtags => ['a', 'b', 'c']),
@@ -386,6 +387,7 @@ sub test_indicators {
     my $self = shift;
 
     my $mm1 = MarcUtil::MarcMapping->new(
+	name => 'mapping0',
         subfields => [
             MarcUtil::FieldTag->new( tag => '653', subtags => [ 'a' ], ind1 => '7', ind2 => ' ' ),
         ],
@@ -393,6 +395,7 @@ sub test_indicators {
 	);
 
     my $mm2 = MarcUtil::MarcMapping->new(
+	name => 'mapping1',
         subfields => [
             MarcUtil::FieldTag->new( tag => '653', subtags => [ 'a' ], ind1 => ' ', ind2 => ' ' )
         ],

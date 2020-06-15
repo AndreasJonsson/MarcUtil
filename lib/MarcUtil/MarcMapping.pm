@@ -1,6 +1,6 @@
 package MarcUtil::MarcMapping;
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 use namespace::autoclean;
 use Modern::Perl;
@@ -46,7 +46,12 @@ has params => (
     is => 'ro',
     isa => 'HashRef',
     default => sub { {} }
-);
+    );
+
+has name => (
+    is => 'ro',
+    isa => 'Str'
+    );
 
 sub BUILD {
     my $self = shift;
@@ -57,8 +62,9 @@ sub BUILD {
 }
 
 sub mm_sf {
-    my ($field, $sub, $ind1, $ind2) = @_;
-    return MarcMapping->new(subfields => [ MarcUtil::FieldTag->new(
+    my ($field, $sub, $ind1, $ind2, $name) = @_;
+    return MarcMapping->new(name => $name,
+			    subfields => [ MarcUtil::FieldTag->new(
                                                tag => $field,
                                                subtags => $sub,
                                                ind1 => $ind1,
@@ -121,9 +127,10 @@ sub _get_fhs {
         $fhs = [];
         my $i = 0;
         for (; $i < scalar(@existing_fields); $i++) {
-            push @$fhs, MarcUtil::MarcFieldHolder->new(
+            push @$fhs, $self->_new_marcfield_holder(
                 record => $self->record,
                 tag => $fieldtag->tag,
+		name => $self->name,
                 field => $existing_fields[$i],
                 ind1 => _ind_val($fieldtag->ind1),
                 ind2 => _ind_val($fieldtag->ind2));
@@ -132,6 +139,16 @@ sub _get_fhs {
     }
 
     return $fhs;
+}
+
+sub _new_marcfield_holder {
+    my $self = shift;
+
+    if (defined($self->collection)) {
+        return $self->collection->_new_marcfield_holder(@_);
+    }
+    
+    return MarcUtil::MarcFieldHolder->new(@_);
 }
 
 sub set {
@@ -268,7 +285,7 @@ sub _appended_fields {
     my ($self, $fieldtag, $n) = @_;
 
     if (defined($self->collection)) {
-        return $self->collection->_appended_fields( $fieldtag, $n );
+        return $self->collection->_appended_fields( $fieldtag, $self->name, $n );
     }
 
     my $fhs = [];
@@ -283,11 +300,12 @@ sub _appended_fields {
     }
 
     for (my $i = 0 + @$fhs; defined($n) && $i < $n; $i++) {
-        my $fh = MarcUtil::MarcFieldHolder->new(
+        my $fh = $self->_new_marcfield_holder(
             record => $self->record,
             tag => $fieldtag->tag,
             ind1 => _ind_val($fieldtag->ind1),
-            ind2 => _ind_val($fieldtag->ind2)
+            ind2 => _ind_val($fieldtag->ind2),
+	    name => $self->name
         );
         push @$fhs, $fh;
     }

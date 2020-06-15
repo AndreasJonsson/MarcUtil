@@ -90,11 +90,12 @@ sub _marc_mappings {
 		$params->{$p} = $params{$name}->{$p};
 	    }
 	}
-        my $mm = MarcUtil::MarcMapping->new(
+        my $mm = __PACKAGE__->_new_marc_mapping(
             control_fields => [map { UNIVERSAL::isa($_, 'MarcUtil::FieldTag') ? $_ : MarcUtil::FieldTag->new(tag => $_) } @cfs],
             subfields => \@subfields,
             collection => $c,
-	    params => $params
+	    params => $params,
+	    name => $name
             );
         if ($params{$name}->{append}) {
             $mm->append_fields(1);
@@ -102,6 +103,11 @@ sub _marc_mappings {
         $c->mappings->{$name} = $mm;
     }
     return $c;
+}
+
+sub _new_marc_mapping {
+    shift;
+    return MarcUtil::MarcMapping->new(@_);
 }
 
 sub set {
@@ -132,7 +138,7 @@ sub delete {
 }
 
 sub _appended_fields {
-    my ($self, $fieldtag, $n) = @_;
+    my ($self, $fieldtag, $name, $n) = @_;
 
     my $fhs = [];
 
@@ -147,17 +153,25 @@ sub _appended_fields {
     }
 
     for (my $i = 0 + @$fhs; defined($n) && $i < $n; $i++) {
-        my $fh = MarcUtil::MarcFieldHolder->new(
+        my $fh = $self->_new_marcfield_holder(
             record => $self->record,
             tag => $fieldtag->tag,
             ind1 => MarcUtil::MarcMapping::_ind_val($fieldtag->ind1),
-            ind2 => MarcUtil::MarcMapping::_ind_val($fieldtag->ind2)
+            ind2 => MarcUtil::MarcMapping::_ind_val($fieldtag->ind2),
+	    name => $name
         );
         push @$fhs, $fh;
     }
 
     return $fhs;
 }
+
+sub _new_marcfield_holder {
+    my $self = shift;
+
+    return MarcUtil::MarcFieldHolder->new(@_);
+}
+
 
 sub reset {
     my $self = shift;

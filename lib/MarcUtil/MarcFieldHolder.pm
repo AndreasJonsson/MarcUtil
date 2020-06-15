@@ -33,13 +33,42 @@ has ind2 => (
 
 has field => (
     is => 'rw',
-    isa => 'MARC::Field'
+    isa => 'MARC::Field',
+    clearer => 'clear_field'
     );
+
+has name => (
+    is => 'ro',
+    isa => 'Str',
+    );
+
+has items => (
+    is => 'rw',
+    isa => '[Str]'
+    );
+
+has mapping => (
+    is => 'rw',
+    isa => 'MarcUtil::MarcMapping'
+    );
+
+has is_itemholder => (
+    is => 'rw',
+    isa => 'Bool',
+    default => 0
+    );
+
+has itemindex => (
+    is => 'rw',
+    isa => 'Int'
+    );
+
 
 sub BUILD {
     my $self = shift;
 
     $self->{appended_field} = undef;
+    $self->{claimed} = {};
 }
 
 sub insert_field {
@@ -53,14 +82,30 @@ sub insert_field {
     $record->append_fields($field);
 }
 
+sub set_item {
+    my ($self, $val) = @_;
+
+    $self->items->[$self->itemindex] = {
+	val => $val,
+	mapping => $self->mapping
+    };
+}
+
+
 sub set_subfield {
     my ($self, $subtag, $val) = @_;
 
-    if (defined($self->field)) {
+    if ($self->is_itemholder) {
+	$self->set_item($val);
+    } elsif (defined($self->field)) {
 	if (defined($val)) {
 	    $self->field->update( $subtag => $val );
 	} else {
 	    $self->field->delete_subfield( 'code' => $subtag );
+	    if (scalar($self->field->subfields) == 0) {
+		$self->record->delete_fields($self->field);
+		$self->clear_field;
+	    }
 	}
     } elsif (defined($val)) {
         $self->field( MARC::Field->new( $self->tag, $self->ind1, $self->ind2, $subtag => $val ) );
@@ -90,13 +135,13 @@ __PACKAGE__->meta->make_immutable;
 
 __END__
 
-=head1 NAME
+    =head1 NAME
 
-MarcUtil::MarcFieldHolder - Hold a reference to a Marc field.
+    MarcUtil::MarcFieldHolder - Hold a reference to a Marc field.
 
-=head1 SYNOPSIS
+    =head1 SYNOPSIS
 
-  use MarcUtil::MarcMapping;
+  use MarcUtil::MarcFieldHolder;
 
 =head1 DESCRIPTION
 
