@@ -97,8 +97,10 @@ sub _marc_mappings {
 	    params => $params,
 	    name => $name
             );
-        if ($params{$name}->{append}) {
+        if ($params->{append}) {
             $mm->append_fields(1);
+        } else {
+            $mm->append_fields(0);
         }
         $c->mappings->{$name} = $mm;
     }

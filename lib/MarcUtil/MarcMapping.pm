@@ -1,6 +1,6 @@
 package MarcUtil::MarcMapping;
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 use namespace::autoclean;
 use Modern::Perl;
